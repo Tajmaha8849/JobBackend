@@ -1,0 +1,14 @@
+bcrypt
+ cloudinary
+  cookie-parser 
+  cors 
+  dotenv 
+  express
+   express-fileupload 
+   jsonwebtoken 
+   mongoose
+   
+    validator
+
+
+    CLOUDINARY does not allow to read pdf format file thats why we will take resume in png format
