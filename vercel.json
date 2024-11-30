@@ -1,15 +1,23 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/**/*.js",  // Points to the backend code in the 'api' directory
-      "use": "@vercel/node"  // This tells Vercel to use Node.js to run the serverless functions
+      "source": "/api/:path*",
+      "destination": "https://jobbackend-1-prpp.onrender.com/api/:path*"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1.js"  // This rewrites all API requests to the corresponding serverless function in the 'api' directory
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://client-two-iota-81.vercel.app"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        }
+      ]
     }
   ]
 }
