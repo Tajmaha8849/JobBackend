@@ -1,34 +1,43 @@
-export const errorMiddleware = (err, req, res, next) => {
+class ErrorHandler extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+const errorMiddleware = (err, req, res, next) => {
   err.message = err.message || "Internal Server Error";
   err.statusCode = err.statusCode || 500;
 
-  // Handling Mongoose CastError
+  // Handle Mongoose CastError
   if (err.name === "CastError") {
     const message = `Resource not found. Invalid ${err.path}`;
-    err = new ErrorHandler(message, 400); // Update the error object
+    err = new ErrorHandler(message, 400);
   }
 
-  // Handling Mongoose Duplicate Key Error
+  // Handle Mongoose Duplicate Key Error
   if (err.code === 11000) {
     const message = `Duplicate ${Object.keys(err.keyValue)} Entered`;
-    err = new ErrorHandler(message, 400); // Update the error object
+    err = new ErrorHandler(message, 400);
   }
 
-  // Handling JWT Error
+  // Handle JWT Errors
   if (err.name === "JsonWebTokenError") {
-    const message = `Json Web Token is invalid, Try again!`;
-    err = new ErrorHandler(message, 400); // Update the error object
+    const message = "Json Web Token is invalid, Try again!";
+    err = new ErrorHandler(message, 400);
   }
 
-  // Handling JWT Expire Error
   if (err.name === "TokenExpiredError") {
-    const message = `Json Web Token is expired, Try again!`;
-    err = new ErrorHandler(message, 400); // Update the error object
+    const message = "Json Web Token is expired, Try again!";
+    err = new ErrorHandler(message, 400);
   }
 
-  // Send the response
   return res.status(err.statusCode).json({
     success: false,
     message: err.message,
   });
 };
+
+// Export ErrorHandler as default and errorMiddleware as named export
+export default ErrorHandler;
+export { errorMiddleware };
