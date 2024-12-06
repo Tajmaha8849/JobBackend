@@ -7,22 +7,31 @@ import cloudinary from "cloudinary";
 
 export const postApplication = catchAsyncErrors(async (req, res, next) => {
   const { role } = req.user;
+
+  // Check if the role is allowed
   if (role === "Employer") {
     return next(
-      new ErrorHandler("Employer not allowed to access this resource.", 400)
+      new ErrorHandler("Employers are not allowed to access this resource.", 400)
     );
   }
+
+  // Validate uploaded files
   if (!req.files || Object.keys(req.files).length === 0) {
-    return next(new ErrorHandler("Resume File Required!", 400));
+    return next(new ErrorHandler("Resume file is required.", 400));
   }
 
   const { resume } = req.files;
   const allowedFormats = ["image/png", "image/jpeg", "image/webp"];
   if (!allowedFormats.includes(resume.mimetype)) {
     return next(
-      new ErrorHandler("Invalid file type. Please upload a PNG file.", 400)
+      new ErrorHandler(
+        "Invalid file type. Please upload a PNG, JPEG, or WEBP file.",
+        400
+      )
     );
   }
+
+  // Upload resume to Cloudinary
   const cloudinaryResponse = await cloudinary.uploader.upload(
     resume.tempFilePath
   );
@@ -32,37 +41,38 @@ export const postApplication = catchAsyncErrors(async (req, res, next) => {
       "Cloudinary Error:",
       cloudinaryResponse.error || "Unknown Cloudinary error"
     );
-    return next(new ErrorHandler("Failed to upload Resume to Cloudinary", 500));
+    return next(new ErrorHandler("Failed to upload resume to Cloudinary.", 500));
   }
+
+  // Extract request body
   const { name, email, coverLetter, phone, address, jobId } = req.body;
+
+  if (!jobId) {
+    return next(new ErrorHandler("Job ID is required.", 404));
+  }
+
+  // Fetch job details
+  const jobDetails = await Job.findById(jobId);
+  if (!jobDetails) {
+    return next(new ErrorHandler("Job not found.", 404));
+  }
+
+  // Ensure all fields are provided
+  if (!name || !email || !coverLetter || !phone || !address) {
+    return next(new ErrorHandler("Please fill in all required fields.", 400));
+  }
+
+  // Prepare application data
   const applicantID = {
     user: req.user._id,
     role: "Job Seeker",
   };
-  if (!jobId) {
-    return next(new ErrorHandler("Job not found!", 404));
-  }
-  const jobDetails = await Job.findById(jobId);
-  if (!jobDetails) {
-    return next(new ErrorHandler("Job not found!", 404));
-  }
-
   const employerID = {
     user: jobDetails.postedBy,
     role: "Employer",
   };
-  if (
-    !name ||
-    !email ||
-    !coverLetter ||
-    !phone ||
-    !address ||
-    !applicantID ||
-    !employerID ||
-    !resume
-  ) {
-    return next(new ErrorHandler("Please fill all fields.", 400));
-  }
+
+  // Save application to the database
   const application = await Application.create({
     name,
     email,
@@ -76,12 +86,15 @@ export const postApplication = catchAsyncErrors(async (req, res, next) => {
       url: cloudinaryResponse.secure_url,
     },
   });
+
+  // Respond with success
   res.status(200).json({
     success: true,
-    message: "Application Submitted!",
+    message: "Application submitted successfully!",
     application,
   });
 });
+
 
 export const employerGetAllApplications = catchAsyncErrors(
   async (req, res, next) => {
